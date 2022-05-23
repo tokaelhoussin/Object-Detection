@@ -1,5 +1,3 @@
-# Object-Detection
-
 # Vehicle Detection
 
 
