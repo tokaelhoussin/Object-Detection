@@ -88,7 +88,7 @@ Below is the visualization of the heatmap next to the resulting bounding boxes.
 
 ## Final Pipeline
 All that's left to do now is to process the entire video. Here is it on Youtube.
-[![Vehicle Detection][image7]](https://www.youtube.com/watch?v=zNlnjWxU6DM&feature=youtu.be "Vehicle Detection Video")
+[![Vehicle Detection][image7]](out_result.mp4 "Vehicle Detection Video")
 
 ## Conclusion
 This algorithm is not a fast one - it appears to take 15 minutes on my (slow) laptop. Finding a sweet spot between accuracy and computational speed was a challenge. I suppose given that the video already takes 15 minutes, hope for this implementation to achieve real-time speeds would be a long shot.
