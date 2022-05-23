@@ -398,3 +398,126 @@ ax3.set_title(title, fontsize=20)
 ax3.axis("off")
 
 plt.savefig('output_images/bbox_vis.png')
+
+# Overall Pipeline
+# Heatmapping
+# Accumulation of labels from last N frames
+class Detect_history():
+    def __init__ (self):
+        # Number labels to store
+        self.queue_len = 7 #17 13
+        self.queue = []
+
+    # Put new frame
+    def put_labels(self, labels):
+        if (len(self.queue) > self.queue_len):
+            tmp = self.queue.pop(0)
+        self.queue.append(labels)
+    
+    # Get last N frames hot boxes
+    def get_labels(self):
+        detections = []
+        for label in self.queue:
+            detections.extend(label)
+        return detections
+
+# Read in image similar to one shown above 
+image = test_images[3]
+blank = np.zeros_like(image[:,:,0]).astype(np.float)
+
+def add_heat(heatmap, bbox_list):
+    # Iterate through list of bboxes
+    for box in bbox_list:
+        # Add += 1 for all pixels inside each bbox
+        # Assuming each "box" takes the form ((x1, y1), (x2, y2))
+        heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
+
+    # Return updated heatmap
+    return heatmap# Iterate through list of bboxes
+
+def draw_labeled_bboxes(img, labels):
+    # Iterate through all detected cars
+    for car_number in range(1, labels[1]+1):
+        # Find pixels with each car_number label value
+        nonzero = (labels[0] == car_number).nonzero()
+        # Identify x and y values of those pixels
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
+        # Define a bounding box based on min/max x and y
+        bbox = ((np.min(nonzerox), np.min(nonzeroy)), (np.max(nonzerox), np.max(nonzeroy)))
+        # Draw the box on the image
+        cv2.rectangle(img, bbox[0], (bbox[1][0]+10,bbox[1][1]-10), (0,0,255), 6)
+    # Return the image
+    return img
+
+
+# Using Subsampled HOG windows to get possible detections 
+bbox_detection_list, detections, box_vis_list = find_cars(image, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins,ystart_ystop_scale)
+
+# Add heat to each box in box list
+heatmap = add_heat(blank, bbox_detection_list)
+
+# Find final boxes from heatmap using label function
+labels = label(heatmap)
+draw_img = draw_labeled_bboxes(np.copy(image), labels)
+
+fig = plt.figure(figsize = (20,5))
+plt.subplot(121)
+plt.imshow(draw_img)
+plt.title('Car Positions')
+plt.axis('off')
+plt.subplot(122)
+plt.imshow(heatmap, cmap='hot')
+plt.title('Heat Map')
+plt.axis('off')
+
+plt.savefig('output_images/heatmap.png')
+
+
+### Parameters
+spatial = 32
+hist_bins = 32
+colorspace = 'YCrCb' # Can be RGB, HSV, LUV, HLS, YUV, YCrCb #YCrCb best
+orient = 9
+pix_per_cell = 8
+cell_per_block = 2
+spatial_size= (32, 32)
+heat_threshold= 4 # 12
+hog_channel = "ALL" # Can be 0, 1, 2, or "ALL" #ALL,0 best
+ystart_ystop_scale = [(405, 510, 1), (400, 600, 1.5), (500, 710, 2.5)]
+
+def process_image(img): 
+    
+    # Using Subsampled HOG windows to get possible detections 
+    bbox_detection_list, detections, box_vis_list = find_cars(img, svc, X_scaler, orient, pix_per_cell, cell_per_block, spatial_size, hist_bins,ystart_ystop_scale)
+
+    blank = np.zeros_like(img[:,:,0]).astype(np.float)
+
+    # Smoothing out previous detections
+    detect_history.put_labels(bbox_detection_list)
+    bbox_detection_list = detect_history.get_labels()
+
+    # Add heat to detections
+    heatmap = add_heat(blank, bbox_detection_list)
+
+    # Find final boxes from heatmap using label function
+    labels = label(heatmap)
+
+    # Draw bounding box 
+    result = draw_labeled_bboxes(np.copy(img), labels)
+    
+    return result
+
+detect_history = Detect_history()
+
+result = process_image(test_images[3])
+plt.figure(figsize = (20,20))
+plt.imshow(result)
+plt.axis("off")
+
+#Process Video
+detect_history = Detect_history()
+project_video_res = 'sasy_result.mp4'
+clip1 = VideoFileClip("sasy.mp4")
+project_video_clip = clip1.fl_image(process_image)
+project_video_clip.write_videofile(project_video_res, audio=False)
