@@ -518,6 +518,8 @@ plt.axis("off")
 #Process Video
 detect_history = Detect_history()
 project_video_res = 'out_result.mp4'
-clip1 = VideoFileClip("challenge_video.mp4")
-project_video_clip = clip1.fl_image(process_image)
-project_video_clip.write_videofile(project_video_res, audio=False)
+clip1 = VideoFileClip("sasy.mp4")
+#clip1 = clip1.subclib(0, 30)
+new = clip1.set_fps(18)
+project_video_clip = new.fl_image(process_image)
+%time project_video_clip.write_videofile(project_video_res, audio = False,logger=None)
